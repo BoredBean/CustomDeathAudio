@@ -67,3 +67,7 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+/CustomDeathAudio/bin/Debug/netstandard2.1
+/CustomDeathAudio/lib/Assembly-CSharp.dll
+/CustomDeathAudio/obj
+/Release
