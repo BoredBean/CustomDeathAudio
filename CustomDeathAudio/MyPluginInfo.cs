@@ -4,6 +4,6 @@ namespace Instruments4Music
     {
         public const string PLUGIN_GUID = "com.bean.CustomDeathAudio";
         public const string PLUGIN_NAME = "CustomDeathAudio";
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "1.1.0";
     }
 }

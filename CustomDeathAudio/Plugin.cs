@@ -70,10 +70,12 @@ namespace CustomDeathAudio
     [HarmonyPatch(typeof(PlayerControllerB))]
     public class DeathPatches
     {
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch("KillPlayer")]
         static void KillPlayerPatch(PlayerControllerB __instance)
         {
+            if (!__instance.IsOwner || __instance.isPlayerDead || !__instance.AllowPlayerDeath())
+                return;
             GameObject deathAudioObject = new("DeathAudioObject");
             var audioSource = deathAudioObject.AddComponent<AudioSource>();
             audioSource.clip = Plugin.Instance?.CustomSound;
