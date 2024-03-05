@@ -2,7 +2,7 @@
     "name": "CustomDeathAudio",
     "version_number": "1.2.0",
     "website_url": "https://github.com/BoredBean/CustomDeathAudio",
-    "description": "Play a custom audio at the time your character dies. Currently, only you can hear it. Put your audio into this plugin's folder, or customize the path of your audio relative to this plugin's path. You can also config the volume and playback speed of your audio.",
+    "description": "Play a custom audio at the time your character dies. Currently, only you can hear it. Put your audio into this plugin's folder, or customize the path of your audio relative to this plugin's path. You can also config the volume and play speed of your audio",
     "dependencies": [
         "no00ob-LCSoundTool-1.5.1"
     ]
