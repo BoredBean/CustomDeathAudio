@@ -8,6 +8,9 @@ using GameNetcodeStuff;
 using Instruments4Music;
 using LCSoundTool;
 using UnityEngine;
+using BepInEx.Configuration;
+using System;
+using System.Linq;
 
 namespace CustomDeathAudio
 {
@@ -18,11 +21,17 @@ namespace CustomDeathAudio
         internal static ManualLogSource? LogSource;
         private readonly Harmony _harmony = new(MyPluginInfo.PLUGIN_GUID);
 
-        public AudioClip? CustomSound;
+        public AudioClip CustomSound = null;
 
-        private string? _directoryPath ;
-        private const string FileName = "DeathAudio";
         public static PlayerControllerB? Player => GameNetworkManager.Instance?.localPlayerController;
+
+        private readonly string _pluginPath = $"BeanCan-{MyPluginInfo.PLUGIN_NAME}";
+        private const string OriginFileName = "DeathAudio";
+
+        internal static ConfigEntry<string> CustomRelativePath;
+        internal static ConfigEntry<float> CustomVolume;
+        internal static ConfigEntry<float> CustomPitch;
+
         public static void AddLog(string str)
         {
             LogSource?.LogInfo(str);
@@ -38,10 +47,17 @@ namespace CustomDeathAudio
 
             LogSource = this.Logger;
 
+            CustomRelativePath = Config.Bind("General", "CustomRelatedPath", $"./{OriginFileName}.wav",
+                "Customize the path of your audio relative to the plugin's folder. \n" +
+                "e.g. \"../another-path/MyAudio.ogg\" \n" +
+                "If no suffix is provided, \".wav\" will be considered as the default.");
+            CustomVolume = Config.Bind("General", "CustomVolum", 1.0f, "Customize the Volum of your audio. \n" +
+                "Should be a float number. (Default: 100%)");
+            CustomPitch = Config.Bind("General", "CustomPitch", 1.0f, "Customize the pitch(playback speed) of your audio. \n" +
+                "Should be a float number. (Default: 100%)");
+
             // Plugin startup logic
             AddLog($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
-
-            _directoryPath = Path.GetDirectoryName(Paths.PluginPath) + $@"\plugins\BeanCan-{MyPluginInfo.PLUGIN_NAME}";
 
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
@@ -52,20 +68,31 @@ namespace CustomDeathAudio
 
         private void ProcessSoundFile()
         {
-            if (_directoryPath == null) return;
-            string[] possibleExtensions = [".wav", ".mp3", ".ogg"];
-            foreach (var extension in possibleExtensions)
+            if (_pluginPath == null) return;
+            string relativePath = Path.GetDirectoryName(CustomRelativePath.Value);
+            string fileName = Path.GetFileName(CustomRelativePath.Value);
+
+            try
             {
-                var filePath = Path.Combine(_directoryPath, FileName + extension);
-                AddLog($"Path: {filePath}\nExist: {File.Exists(filePath)}");
-                if (!File.Exists(filePath)) continue;
-                CustomSound = SoundTool.GetAudioClip(_directoryPath, "", filePath);
-                AddLog($"Audio clip created!");
-                break;
+                AddLog($"Loading {_pluginPath}/{relativePath}/{fileName}.");
+                CustomSound = SoundTool.GetAudioClip(_pluginPath, relativePath, fileName);
             }
+            catch { }
+
+            if (CustomSound != null) return;
+
+            try
+            {
+                AddLog($"Loading {_pluginPath}/{OriginFileName}.wav.");
+                CustomSound = SoundTool.GetAudioClip(_pluginPath, $"{OriginFileName}.wav");
+            }
+            catch { }
+            if (CustomSound != null) return;
+
+            AddLog($"Failed to load the audio.");
         }
     }
-	
+
 
     [HarmonyPatch(typeof(PlayerControllerB))]
     public class DeathPatches
@@ -74,12 +101,13 @@ namespace CustomDeathAudio
         [HarmonyPatch("KillPlayer")]
         static void KillPlayerPatch(PlayerControllerB __instance)
         {
-            if (!__instance.IsOwner || __instance.isPlayerDead || !__instance.AllowPlayerDeath())
+            if (!__instance.IsOwner || __instance.isPlayerDead || !__instance.AllowPlayerDeath() || Plugin.Instance?.CustomSound == null)
                 return;
             GameObject deathAudioObject = new("DeathAudioObject");
             var audioSource = deathAudioObject.AddComponent<AudioSource>();
-            audioSource.clip = Plugin.Instance?.CustomSound;
-            audioSource.volume = 1.0f;
+            audioSource.clip = Plugin.Instance.CustomSound;
+            audioSource.volume = Plugin.CustomVolume.Value;
+            audioSource.pitch = Plugin.CustomPitch.Value;
             audioSource.spatialBlend = 0;
             audioSource.Play();
         }

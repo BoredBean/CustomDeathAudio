@@ -1,6 +1,14 @@
 # CustomDeathAudio
 This simple mod supports a custom death audio.
 
-Put your audio into the plugin folder, commonly names **"BeanCan-CustomDeathAudio"**.
+It will play a custom audio at the time your character dies.
 
-Your custom audio must be named to **"DeathAudio"** and can end with "mp3", "ogg" or "wav".
+Currently, only you can hear it. 
+
+## Configurations
+
+Modify the config file at "BepInEx\config\com.bean.CustomDeathAudio.cfg".
+
+Put your audio into this plugin's folder, or customize the path of your audio relative to this plugin's path.
+
+You can also config the volume and playback speed of your audio.
