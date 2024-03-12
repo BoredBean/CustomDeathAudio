@@ -8,3 +8,6 @@
 
 ### Release v1.2.0
 1. Add configurations for the audio path, volume and the playback speed.
+
+### Release v1.3.0
+1. Fix the issue that the death audio playback twice after the player's death, again.
