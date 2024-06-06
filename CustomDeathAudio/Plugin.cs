@@ -1,16 +1,14 @@
 ﻿#nullable enable
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using GameNetcodeStuff;
+using HarmonyLib;
+using LCSoundTool;
+using System;
 using System.IO;
 using System.Reflection;
-using BepInEx;
-using BepInEx.Logging;
-using HarmonyLib;
-using GameNetcodeStuff;
-using Instruments4Music;
-using LCSoundTool;
 using UnityEngine;
-using BepInEx.Configuration;
-using System;
-using System.Linq;
 
 namespace CustomDeathAudio
 {
@@ -19,18 +17,19 @@ namespace CustomDeathAudio
     {
         public static Plugin? Instance;
         internal static ManualLogSource? LogSource;
-        private readonly Harmony _harmony = new(MyPluginInfo.PLUGIN_GUID);
 
-        public AudioClip CustomSound = null;
+        public static AudioClip? CustomAudioClip;
+        public static GameObject? NetObj;
 
         public static PlayerControllerB? Player => GameNetworkManager.Instance?.localPlayerController;
 
-        private readonly string _pluginPath = $"BeanCan-{MyPluginInfo.PLUGIN_NAME}";
+        private const string PluginPath = $"BeanCan-{MyPluginInfo.PLUGIN_NAME}";
         private const string OriginFileName = "DeathAudio";
 
-        internal static ConfigEntry<string> CustomRelativePath;
-        internal static ConfigEntry<float> CustomVolume;
-        internal static ConfigEntry<float> CustomPitch;
+        internal static ConfigEntry<string>? CustomRelativePath;
+        internal static ConfigEntry<float>? CustomVolume;
+        internal static ConfigEntry<float>? Custom2DVolume;
+        internal static ConfigEntry<float>? CustomPitch;
 
         public static void AddLog(string str)
         {
@@ -41,76 +40,107 @@ namespace CustomDeathAudio
         {
             if (Instance != null)
             {
-                throw new System.Exception("More than 1 plugin instance.");
+                throw new Exception("More than 1 plugin instance.");
             }
             Instance = this;
 
-            LogSource = this.Logger;
+            LogSource = Logger;
 
             CustomRelativePath = Config.Bind("General", "CustomRelatedPath", $"./{OriginFileName}.wav",
                 "Customize the path of your audio relative to the plugin's folder. \n" +
                 "e.g. \"../another-path/MyAudio.ogg\" \n" +
                 "If no suffix is provided, \".wav\" will be considered as the default.");
-            CustomVolume = Config.Bind("General", "CustomVolum", 1.0f, "Customize the Volum of your audio. \n" +
+            CustomVolume = Config.Bind("General", "CustomVolume", 1.0f,
+                "Customize the Volume of the 3D audio. \n" +
+                "3D means the audio plays from the body's location. \n" +
                 "Should be a float number. (Default: 100%)");
-            CustomPitch = Config.Bind("General", "CustomPitch", 1.0f, "Customize the pitch(playback speed) of your audio. \n" +
+            Custom2DVolume = Config.Bind("General", "Custom2DVolume", 0.5f,
+                "Customize the Volume of the 2D audio. \n" +
+                "2D audio only plays for the killed player. \n" +
+                "Should be a float number. (Default: 50%)");
+            CustomPitch = Config.Bind("General", "CustomPitch", 1.0f,
+                "Customize the pitch(playback speed) of your audio. \n" +
                 "Should be a float number. (Default: 100%)");
 
-            // Plugin startup logic
             AddLog($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
 
-            _harmony.PatchAll(Assembly.GetExecutingAssembly());
+            var types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0)
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
+
+            Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), MyPluginInfo.PLUGIN_GUID);
+
+
+            var dllFolderPath = Path.GetDirectoryName(Info.Location);
+            if (dllFolderPath == null) return;
+            var assetBundleFilePath = Path.Combine(dllFolderPath, "netobj");
+            var bundle = AssetBundle.LoadFromFile(assetBundleFilePath);
+            NetObj = bundle.LoadAsset<GameObject>("NetObj.prefab");
+            NetObj.AddComponent<AudioSource>();
+
+            Logger.LogInfo($"Loading asset bundle.");
+            if (bundle == null) return;
+        }
+        internal void Start()
+        {
+            AddLog("Start loading custom audio.");
+            ProcessAudioFile();
+        }
+        internal void OnDestroy()
+        {
+            AddLog("Start loading custom audio.");
+            ProcessAudioFile();
         }
 
-        internal void Start() => this.ProcessSoundFile();
-
-        internal void OnDestroy() => this.ProcessSoundFile();
-
-        private void ProcessSoundFile()
+        private static void ProcessAudioFile()
         {
-            if (_pluginPath == null) return;
-            string relativePath = Path.GetDirectoryName(CustomRelativePath.Value);
-            string fileName = Path.GetFileName(CustomRelativePath.Value);
+            var customPath = CustomRelativePath?.Value ?? $"{OriginFileName}.wav";
+            var relativePath = Path.GetDirectoryName(customPath);
+            var fileName = Path.GetFileName(customPath);
 
             try
             {
-                AddLog($"Loading {_pluginPath}/{relativePath}/{fileName}.");
-                CustomSound = SoundTool.GetAudioClip(_pluginPath, relativePath, fileName);
+                AddLog($"Loading {PluginPath}/{customPath}.");
+                CustomAudioClip = SoundTool.GetAudioClip(PluginPath, relativePath, fileName);
             }
-            catch { }
-
-            if (CustomSound != null) return;
-
-            try
+            catch (Exception e)
             {
-                AddLog($"Loading {_pluginPath}/{OriginFileName}.wav.");
-                CustomSound = SoundTool.GetAudioClip(_pluginPath, $"{OriginFileName}.wav");
+                AddLog(e.Message);
             }
-            catch { }
-            if (CustomSound != null) return;
 
-            AddLog($"Failed to load the audio.");
-        }
-    }
-
-
-    [HarmonyPatch(typeof(PlayerControllerB))]
-    public class DeathPatches
-    {
-        [HarmonyPostfix]
-        [HarmonyPatch("KillPlayer")]
-        static void KillPlayerPatch(PlayerControllerB __instance)
-        {
-            Plugin.AddLog($"Killing player.");
-            if (!__instance.IsOwner || Plugin.Instance?.CustomSound == null)
+            if (CustomAudioClip != null)
+            {
+                AddLog("Audio clip loaded.");
                 return;
-            Plugin.AddLog($"Playing death audio.");
+            }
 
-            GameObject deathAudioObject = new("DeathAudioObject");
-            var CustomSource = deathAudioObject.AddComponent<AudioSource>();
-            CustomSource.pitch = Plugin.CustomPitch.Value;
-            CustomSource.spatialBlend = 0;
-            CustomSource.PlayOneShot(Plugin.Instance.CustomSound, Plugin.CustomVolume.Value);
+            try
+            {
+                AddLog($"Loading {PluginPath}/{OriginFileName}.wav.");
+                CustomAudioClip = SoundTool.GetAudioClip(PluginPath, $"{OriginFileName}.wav");
+            }
+            catch (Exception e)
+            {
+                AddLog(e.Message);
+            }
+
+            if (CustomAudioClip != null)
+            {
+                AddLog("Audio clip loaded.");
+                return;
+            }
+
+            AddLog("Failed to load the audio.");
         }
     }
 }

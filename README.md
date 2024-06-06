@@ -1,9 +1,9 @@
 # CustomDeathAudio
 This simple mod supports a custom death audio.
 
-It will play a custom audio at the time your character dies.
+It will play a custom audio at the time a player dies.
 
-Currently, only you can hear it. 
+It syncs with the network from v2.0.0.
 
 ## Configurations
 

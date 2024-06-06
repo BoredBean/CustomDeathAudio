@@ -11,3 +11,6 @@
 
 ### Release v1.3.0
 1. Fix the issue that the death audio playback twice after the player's death, again.
+
+### Release v2.0.0
+1. Add Network Sync to the death audio. Now players can hear the audio when other players get killed, at some distance.
