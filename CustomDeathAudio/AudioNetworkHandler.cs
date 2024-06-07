@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using Unity.Netcode;
+﻿using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 #nullable enable
 namespace CustomDeathAudio
@@ -21,7 +18,6 @@ namespace CustomDeathAudio
 
         public void Destroy()
         {
-            if (!IsServer) return;
             DespawnNetObjServerRpc();
         }
 
@@ -72,7 +68,7 @@ namespace CustomDeathAudio
             Plugin.AddLog($"Audio played.");
         }
 
-        [ServerRpc]
+        [ServerRpc(RequireOwnership = false)]
         public void DespawnNetObjServerRpc()
         {
             Plugin.AddLog("Running DespawnNetObjServerRpc");

@@ -14,3 +14,6 @@
 
 ### Release v2.0.0
 1. Add Network Sync to the death audio. Now players can hear the audio when other players get killed, at some distance.
+
+### Release v2.0.1
+1. Fix despawn function.

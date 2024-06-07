@@ -70,7 +70,7 @@ namespace CustomDeathAudio
             {
                 if (AudioNetworkHandler.IsServer)
                 {
-                    //AudioNetworkHandler.DespawnNetObjServerRpc();
+                    AudioNetworkHandler.DespawnNetObjServerRpc();
                 }
             }
         }
