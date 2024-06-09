@@ -13,14 +13,13 @@ using UnityEngine;
 namespace CustomDeathAudio
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-    [BepInDependency("LC_SoundTool", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("LCSoundTool", BepInDependency.DependencyFlags.HardDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static Plugin? Instance;
         internal static ManualLogSource? LogSource;
 
         public static AudioClip? CustomAudioClip;
-        public static GameObject? NetObj;
 
         public static PlayerControllerB? Player => GameNetworkManager.Instance?.localPlayerController;
 
@@ -53,10 +52,12 @@ namespace CustomDeathAudio
                 "If no suffix is provided, \".wav\" will be considered as the default.");
             CustomVolume = Config.Bind("General", "CustomVolume", 1.0f,
                 "Customize the Volume of the 3D audio. \n" +
+                "Config this for other players' audio. \n" +
                 "3D means the audio plays from the body's location. \n" +
                 "Should be a float number. (Default: 100%)");
             Custom2DVolume = Config.Bind("General", "Custom2DVolume", 0.5f,
                 "Customize the Volume of the 2D audio. \n" +
+                "Config this for your audio. \n" +
                 "2D audio only plays for the killed player. \n" +
                 "Should be a float number. (Default: 50%)");
             CustomPitch = Config.Bind("General", "CustomPitch", 1.0f,
@@ -65,32 +66,7 @@ namespace CustomDeathAudio
 
             AddLog($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
 
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (var type in types)
-            {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods)
-                {
-                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                    if (attributes.Length > 0)
-                    {
-                        method.Invoke(null, null);
-                    }
-                }
-            }
-
             Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), MyPluginInfo.PLUGIN_GUID);
-
-
-            var dllFolderPath = Path.GetDirectoryName(Info.Location);
-            if (dllFolderPath == null) return;
-            var assetBundleFilePath = Path.Combine(dllFolderPath, "netobj");
-            var bundle = AssetBundle.LoadFromFile(assetBundleFilePath);
-            NetObj = bundle.LoadAsset<GameObject>("NetObj.prefab");
-            NetObj.AddComponent<AudioSource>();
-
-            Logger.LogInfo($"Loading asset bundle.");
-            if (bundle == null) return;
         }
         internal void Start()
         {

@@ -17,3 +17,6 @@
 
 ### Release v2.0.1
 1. Fix despawn function.
+
+### Release v2.1.0
+1. Back to client side. Network sync is not really needed. You can still choose to hear others' death if you want.

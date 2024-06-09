@@ -1,8 +1,8 @@
 {
     "name": "CustomDeathAudio",
-    "version_number": "2.0.1",
+    "version_number": "2.1.0",
     "website_url": "https://github.com/BoredBean/CustomDeathAudio",
-    "description": "[Update: SmallFix] Play a custom audio at the time any character dies. Put your audio into this plugin's folder, or customize the path of your audio relative to this plugin's path. You can also config the volume and play speed of your audio",
+    "description": "[Update: ClientSide] Play a custom audio at the time any character dies. Put your audio into this plugin's folder, or customize the path. You can also configure the volume and play speed of your audio. Choose if to hear others' death. Totally client side.",
     "dependencies": [
         "no00ob-LCSoundTool-1.5.1"
     ]
